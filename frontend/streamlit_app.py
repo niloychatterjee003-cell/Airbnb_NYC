@@ -152,6 +152,6 @@ with col1:
             st.dataframe(top[display_cols].reset_index(drop=True).head(10))
             # show each with short card
             for idx, r in top.head(5).iterrows():
-                st.markdown(f\"\"\"**Listing {int(r['id'])} — {r.get('name','(no title)')}**  \n\nPrice: ${r.get('price','N/A')} — {r.get('room_type_final','')} — {r.get('neighbourhood_final','')}  \n**Why this:** {r.get('reason_text')}  \n**Predicted booking score:** {r.get('pred_score'):.3f}  \n\n---\"\"\")
+                st.markdown(f"""**Listing {int(r['id'])} — {r.get('name','(no title)')}** Price: ${r.get('price','N/A')} — {r.get('room_type_final','')} — {r.get('neighbourhood_final','')} **Why this:** {r.get('reason_text')} **Predicted booking score:** {r.get('pred_score'):.3f}  ---""")
 st.markdown('---')
 st.markdown('Notes: The booking target used here is a proxy (listing has >=1 review). For true booking availability use calendar and reservation data; this app uses calendar.csv when available to check date availability.')

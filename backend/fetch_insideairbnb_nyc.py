@@ -1,56 +1,68 @@
-\
-#!/usr/bin/env python3
-\"\"\"fetch_insideairbnb_nyc.py
-Fetch latest InsideAirbnb NYC dataset folder by scraping the 'Get the data' page
-and download listings.csv, calendar.csv, reviews.csv (if available).
-Saves into ../data/
-\"\"\"
-import os, requests, sys, time
+# backend/fetch_insideairbnb_nyc.py
+
+import requests
+import pandas as pd
+from io import BytesIO
+import gzip
+import os
 from bs4 import BeautifulSoup
 
-BASE_PAGE = "https://insideairbnb.com/get-the-data.html"
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
-os.makedirs(DATA_DIR, exist_ok=True)
+BASE_URL = "http://insideairbnb.com/get-the-data.html"
 
-def find_nyc_folder():
-    resp = requests.get(BASE_PAGE, timeout=20)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-    links = [a.get("href") for a in soup.find_all("a", href=True)]
-    # look for links that include 'new-york' or 'new-york-city'
-    candidates = [l for l in links if l and ("new-york" in l.lower())]
-    # prefer absolute insideairbnb links
-    for c in candidates:
-        if c.startswith("http") and "insideairbnb.com" in c.lower():
-            return c.rstrip("/")
-    if candidates:
-        return candidates[0].rstrip("/")
-    raise RuntimeError("Could not locate NYC folder on InsideAirbnb page. Please check manually.")
 
-def download(url, out_path):
-    print(f"Downloading {url} -> {out_path}")
-    r = requests.get(url, stream=True, timeout=30)
-    r.raise_for_status()
-    with open(out_path, "wb") as f:
-        for chunk in r.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
-    return out_path
+def get_latest_nyc_folder():
+    """Scrape InsideAirbnb to find latest NYC dataset folder."""
+    html = requests.get(BASE_URL).text
+    soup = BeautifulSoup(html, "html.parser")
 
-def main():
-    print("Finding latest NYC folder on InsideAirbnb...")
-    folder = find_nyc_folder()
-    print("Folder found:", folder)
-    files = ["listings.csv", "calendar.csv", "reviews.csv"]
-    for fname in files:
-        url = f"{folder}/{fname}"
-        out = os.path.join(DATA_DIR, fname)
-        try:
-            download(url, out)
-        except Exception as e:
-            print(f"Warning: could not download {fname}: {e}")
-    print("Done. Files saved to", DATA_DIR)
-    print("If a file is missing, you can manually download it from:", folder)
+    links = soup.find_all("a")
+    nyc_links = [l.get("href") for l in links if l.get("href") and "new-york-city" in l.get("href")]
 
-if __name__ == '__main__':
-    main()
+    if not nyc_links:
+        raise RuntimeError("No NYC datasets found on InsideAirbnb!")
+
+    # Latest dataset = last item
+    return nyc_links[-1]
+
+
+def download_and_extract(url, output_path):
+    """Download .csv.gz and save decompressed CSV."""
+    print(f"Downloading: {url}")
+
+    r = requests.get(url, timeout=30)
+    if r.status_code != 200:
+        raise RuntimeError(f"Failed to download dataset from {url}")
+
+    gz_data = BytesIO(r.content)
+    with gzip.open(gz_data, 'rb') as gz:
+        csv_data = gz.read()
+
+    with open(output_path, "wb") as f:
+        f.write(csv_data)
+
+    print(f"Saved: {output_path}")
+
+
+def fetch_latest_nyc_data(save_dir="../data"):
+    """Fetch the latest NYC datasets and save locally."""
+    os.makedirs(save_dir, exist_ok=True)
+
+    latest_folder = get_latest_nyc_folder()
+
+    datasets = {
+        "listings.csv.gz": "listings.csv",
+        "calendar.csv.gz": "calendar.csv",
+        "reviews.csv.gz": "reviews.csv"
+    }
+
+    for gz, out in datasets.items():
+        file_url = f"{latest_folder}{gz}"
+        output_path = os.path.join(save_dir, out)
+        download_and_extract(file_url, output_path)
+
+    print("All NYC datasets fetched successfully!")
+    return True
+
+
+if _name_ == "_main_":
+    fetch_latest_nyc_data()

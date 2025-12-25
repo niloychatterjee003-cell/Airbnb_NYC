@@ -64,5 +64,5 @@ def fetch_latest_nyc_data(save_dir="../data"):
     return True
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     fetch_latest_nyc_data()

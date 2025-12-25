@@ -1,11 +1,11 @@
-\
 #!/usr/bin/env python3
-\"\"\"clean_and_train_v2.py
+"""
+clean_and_train_v2.py
 - Loads data from ../data (listings.csv, calendar.csv, reviews.csv)
 - Cleans listings, engineers features, merges simple calendar availability
 - Trains RandomForestClassifier to predict 'booked_proxy' (has >=1 review)
 - Saves cleaned merged CSV and model to ../outputs/
-\"\"\"
+"""
 import os, joblib, warnings
 warnings.filterwarnings("ignore")
 import pandas as pd, numpy as np
@@ -127,17 +127,20 @@ def train_model(listings):
     return clf
 
 def main():
-    listings = safe_read(os.path.join(DATA, 'listings.csv')) or safe_read(os.path.join(DATA, 'listings.csv.gz'))
+    listings = safe_read(os.path.join(DATA, 'listings.csv'))
     calendar = safe_read(os.path.join(DATA, 'calendar.csv'))
     reviews = safe_read(os.path.join(DATA, 'reviews.csv'))
     if listings is None:
         raise FileNotFoundError('listings.csv not found in data/. Run fetch_insideairbnb_nyc.py first.')
     listings = basic_clean_listings(listings)
     listings = listings.rename(columns={'id':'id'})
-    listings = listings.assign(is_instant_bookable=listings.get('instant_bookable', listings.get('instant_bookable', 'unknown')))
+    if 'instant_bookable' in listings.columns:
+        listings['is_instant_bookable'] = listings['instant_bookable'].astype(str)
+    else:
+        listings['is_instant_bookable'] = 'unknown'
     listings = merge_calendar_into_listings(listings, calendar)
     model = train_model(listings)
     print('Done. Outputs in', OUT)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

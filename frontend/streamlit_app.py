@@ -1,4 +1,3 @@
-\
 import streamlit as st
 import pandas as pd, os, subprocess, sys, joblib
 from datetime import datetime, timedelta
@@ -48,7 +47,8 @@ with col1:
         # normalize fields
         df['price'] = pd.to_numeric(df['price'], errors='coerce') if 'price' in df.columns else pd.to_numeric(df.get('price', pd.Series([None]*len(df))), errors='coerce')
         # filter by price and room type and neighbourhood
-        filt = df['price'].between(min_price, max_price)
+        df['price'] = pd.to_numeric(df['price'], errors = 'coerce')
+        filt = df['price'].between(min_price, max_price, inclusive = 'both')
         if room_type != 'Any' and 'room_type_final' in df.columns:
             filt = filt & (df['room_type_final'] == room_type)
         if neighbourhood.strip() != '':
@@ -65,7 +65,7 @@ with col1:
             mask_dates = (cal['date'] >= pd.to_datetime(checkin)) & (cal['date'] < pd.to_datetime(checkout))
             cal_window = cal[mask_dates]
             # standardize available column detection
-            avail_col = next((c for c in cal_window.columns if 'avail' in c.lower()), None)
+            avail_col = next((c for c in cal_window.columns if c.lower() in ['available', 'availability'] or 'avail' in c.lower()), None)
             id_col = next((c for c in cal_window.columns if 'listing' in c.lower()), None)
             if avail_col and id_col:
                 grouped = cal_window.groupby(id_col)[avail_col].agg(lambda s: all([str(x).lower() in ['t','true','y','yes','1','available'] for x in s]))
@@ -152,6 +152,6 @@ with col1:
             st.dataframe(top[display_cols].reset_index(drop=True).head(10))
             # show each with short card
             for idx, r in top.head(5).iterrows():
-                st.markdown(f"""**Listing {int(r['id'])} — {r.get('name','(no title)')}** Price: ${r.get('price','N/A')} — {r.get('room_type_final','')} — {r.get('neighbourhood_final','')} **Why this:** {r.get('reason_text')} **Predicted booking score:** {r.get('pred_score'):.3f}  ---""")
+                st.markdown(f"""**Listing {int(r['id'])} — {r.get('name','(no title)')}** - **Price:** ${r.get('price','N/A')} - **Room:** {r.get('room_type_final','')} - **Neighbourhood:** {r.get('neighbourhood_final','')} - **Why this:** {r.get('reason_text')} - **Predicted booking score:** {r.get('pred_score'):.3f}  ---""")
 st.markdown('---')
 st.markdown('Notes: The booking target used here is a proxy (listing has >=1 review). For true booking availability use calendar and reservation data; this app uses calendar.csv when available to check date availability.')

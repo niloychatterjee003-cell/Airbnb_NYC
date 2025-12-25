@@ -26,23 +26,28 @@ def get_latest_nyc_folder():
 
 
 def download_and_extract(url, output_path):
-    """Download .csv.gz and save decompressed CSV."""
-    print(f"Downloading: {url}")
+    try:
+        print(f"Downloading: {url}")
+        r = requests.get(url, timeout=30)
 
-    r = requests.get(url, timeout=30)
-    if r.status_code != 200:
-        raise RuntimeError(f"Failed to download dataset from {url}")
+        if r.status_code != 200:
+            print(f"Skipping (not found): {url}")
+            return False
 
-    gz_data = BytesIO(r.content)
-    with gzip.open(gz_data, 'rb') as gz:
-        csv_data = gz.read()
+        gz_data = BytesIO(r.content)
+        with gzip.open(gz_data, "rb") as gz:
+            csv_data = gz.read()
 
-    with open(output_path, "wb") as f:
-        f.write(csv_data)
+        with open(output_path, "wb") as f:
+            f.write(csv_data)
 
-    print(f"Saved: {output_path}")
+        print(f"Saved: {output_path}")
+        return True
 
-
+    except Exception as e:
+        print(f"Skipping {url} due to error: {e}")
+        return False
+        
 def fetch_latest_nyc_data(save_dir="../data"):
     """Fetch the latest NYC datasets and save locally."""
     os.makedirs(save_dir, exist_ok=True)

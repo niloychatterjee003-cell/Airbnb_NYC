@@ -55,7 +55,7 @@ def fetch_latest_nyc_data(save_dir="../data"):
     latest_folder = get_latest_nyc_folder()
 
     datasets = {
-        "listings.csv.gz": "listings.csv",
+        "https://data.insideairbnb.com/united-states/ny/albany/2025-11-07/data/listings.csv.gz": "listings.csv",
         "calendar.csv.gz": "calendar.csv",
         "reviews.csv.gz": "reviews.csv"
     }
